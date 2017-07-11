@@ -1,0 +1,40 @@
+#!/bin/sh
+
+csgo_pid=$(pidof csgo_linux64)
+if [ -z "$csgo_pid" ]; then
+    /bin/echo -e "\e[31mCSGO needs to be open before you can inject...\e[0m"
+    exit 1
+fi
+
+if [ ! -d ".git" ]; then
+    /bin/echo "We have detected that you have downloaded aimtux-master.zip from the GitHub website. This is the WRONG way to download AimTux. Please download AimTux with the command 'git clone --recursive https://github.com/AimTuxOfficial/AimTux'"
+fi
+
+# pBypass for crash dumps being sent
+sudo rm -rf /tmp/dumps # Remove if it's there
+sudo mkdir /tmp/dumps # Make it as root
+sudo chmod 000 /tmp/dumps # No permissions
+
+
+#Credit: Aixxe @ aixxe.net
+if grep -q libx1337.so /proc/$csgo_pid/maps; then
+    /bin/echo -e "\e[33mx1337 is already injected... Aborting...\e[0m"
+    exit
+fi
+echo "Injecting x1337Cheats into PID $csgo_pid"
+
+#https://www.kernel.org/doc/Documentation/security/Yama.txt
+sudo echo "2" | sudo tee /proc/sys/kernel/yama/ptrace_scope # Only allows root to inject code. This is temp until reboot.
+
+
+input="$(
+sudo hotpatcher -l $(pwd)/libx1337.so $csgo_pid | tail -n 2 | head -n 1
+)" # Only read the 2nd latest line of the output from hotpatcher
+
+last_line="${input##*$'\n'}"
+
+if [ "$last_line" != "Dll was injected at (nil)" ]; then
+    /bin/echo -e "\e[32mSuccessfully injected x1337Cheats!\e[0m"
+else
+    /bin/echo -e "\e[31mInjection failed, make sure you've compiled...\e[0m"
+fi
